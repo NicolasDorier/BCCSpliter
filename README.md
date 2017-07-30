@@ -79,7 +79,7 @@ select 489dc8f0925a99fe772f0d5cd5f05cda77bf29449ec3ee266575add6312d6e04-2
 list
 # Then dump
 dump mpxsXnCn1ScUVZmgEDgkjMZMV3NAAVzSdN
-# Wait the dump transaction get confirmed on your favorite exchange, and unlock your coin in the Bitcoin wallet
+# Wait that the dump transaction get confirmed on your favorite exchange, then unlock your coin in your Bitcoin Core wallet
 confirm 38348679e28c9df785dd0d70b5db5b45986ed107ebbe1248bb7bfbdca74cc063
 ```
 
@@ -103,9 +103,12 @@ By default, the configuration file is using cookie authentication in default bit
 
 ## My transaction does not pass
 Since the BTC chain has no idea which coin can be splitted, it is possible you splitted an UTXO which does not exist on the BCC chain.
+
 If that is the case, then your transaction will be rejected, and your machine banned by BCC nodes.
+
 There is sadly no block explorer to check which UTXO can be splitted at this time, so this is a trial and error process.
 
 ## License
 This program is under [MIT License](https://github.com/NicolasDorier/BCCSpliter/blob/master/LICENSE), use at your own risk.
+
 If you are unsure about what this program is doing, then do not use it. This program is meant for people understanding the situation with BCC and BTC.
