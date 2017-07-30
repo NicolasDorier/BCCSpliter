@@ -102,11 +102,14 @@ The configuration file allows to configure the connection to your Bitcoin RPC, a
 By default, the configuration file is using cookie authentication in default bitcoin core path, and connect to a random Bitcoin Cash node.
 
 ## My transaction does not pass
-Since the BTC chain has no idea which coin can be splitted, it is possible you splitted an UTXO which does not exist on the BCC chain.
+
+Please, wait for the split to happen before using this tool on Mainnet. 
+
+If that is the case, the problem is that your Bitcoin Core has no idea which coin can be splitted, and it is possible you splitted an UTXO which does not exist on the BCC chain.
 
 If that is the case, then your transaction will be rejected, and your machine banned by BCC nodes.
 
-There is sadly no block explorer to check which UTXO can be splitted at this time, so this is a trial and error process.
+There is sadly no block explorer for BCC to check which UTXO can be splitted at this time, so this is a trial and error process.
 
 ## License
 This program is under [MIT License](https://github.com/NicolasDorier/BCCSpliter/blob/master/LICENSE), use at your own risk.
