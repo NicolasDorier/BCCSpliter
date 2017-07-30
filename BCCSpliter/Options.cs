@@ -5,7 +5,7 @@ using System.Text;
 
 namespace BCCSpliter
 {
-	[Verb("select", HelpText = "Select UTXOs to dump")]
+	[Verb("select", HelpText = "Select UTXOs to dump, you can use `list` command to see which to dump")]
 	public class SelectOptions
 	{
 		[Value(0, HelpText = "Selector of UTXO, can be `all`, `beforesplit`, or outpoint with the format delimited by commas '[hash]-[n],[hash2]-[n2]'")]
@@ -25,7 +25,7 @@ namespace BCCSpliter
 		}
 	}
 
-	[Verb("dump", HelpText = "Dump selected UTXOs")]
+	[Verb("dump", HelpText = "Dump selected UTXOs, and lock those UTXO in the BTC wallet")]
 	public class DumpOptions
 	{
 		[Value(0, HelpText = "Bitcoin Address on the BCC chain to dump")]
@@ -35,7 +35,7 @@ namespace BCCSpliter
 		}
 	}
 
-	[Verb("confirm", HelpText = "Unlock UTXO on BTC chain once they have been confirmed on BCC chain")]
+	[Verb("confirm", HelpText = "Unlock UTXO in your BTC wallet once they have been confirmed on BCC chain")]
 	public class ConfirmOptions
 	{
 		[Value(0, HelpText = "Transaction Id which got confirmed on BCC chain")]

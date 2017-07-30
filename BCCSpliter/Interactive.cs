@@ -34,6 +34,7 @@ namespace BCCSpliter
 
 		public void Run()
 		{
+			Parser.Default.ParseArguments<SelectOptions, UnselectOptions, ConfirmOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help" });
 			bool quit = false;
 			while(!quit)
 			{
@@ -78,7 +79,7 @@ namespace BCCSpliter
 			UTXO[] utxos = GetDumpingUTXOs();
 			if(utxos.Length == 0)
 			{
-				Logs.Main.LogWarning("No UTXO selected to dump");
+				Logs.Main.LogWarning("No UTXO selected to dump, use `select` command to select UTXOs to select for dump");
 				return;
 			}
 			Logs.Main.LogInformation("Dumping " + utxos.Length + " UTXOs");
