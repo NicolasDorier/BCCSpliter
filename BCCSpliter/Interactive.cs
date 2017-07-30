@@ -235,9 +235,10 @@ namespace BCCSpliter
 			foreach(var outpoint in outpoints)
 			{
 				var wallet = walletUTXOs.TryGet(outpoint);
-				if(selected.TryGet(outpoint) == null)
+				var selectedUTXO = selected.TryGet(outpoint);
+				if(wallet != null && selectedUTXO == null)
 				{
-					Console.WriteLine("\t" + outpoint);
+					Console.WriteLine("\t" + outpoint + "\t" + wallet.Amount.ToString());
 				}
 			}
 			Console.WriteLine("Type `select <outpoint>` to select one of those UTXO, or `select all` to select all of them");
