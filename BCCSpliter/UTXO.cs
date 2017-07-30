@@ -11,10 +11,6 @@ namespace BCCSpliter
 		{
 			get; set;
 		}
-		public bool BeforeFork
-		{
-			get; set;
-		}
 		public Script RedeemScript
 		{
 			get;

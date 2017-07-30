@@ -269,9 +269,10 @@ namespace BCCSpliter
 
 		private UTXO[] GetWalletUTXOs()
 		{
-			var utxos = RPCClient.ListUnspent(0, 9999999).Where(i => i.IsSpendable).Select(i => new UTXO()
+			var utxos = RPCClient.ListUnspent(0, 9999999).Where(i => i.IsSpendable)
+				.Where(c => true) //Filter what can't be splitted
+				.Select(i => new UTXO()
 			{
-				BeforeFork = true, //TODO: To fix
 				Outpoint = i.OutPoint,
 				Amount = i.Amount,
 				ScriptPubKey = i.ScriptPubKey,
@@ -286,8 +287,6 @@ namespace BCCSpliter
 				throw new FormatException();
 			if(selector.Equals("all", StringComparison.OrdinalIgnoreCase))
 				return utxos;
-			if(selector.Equals("beforesplit", StringComparison.OrdinalIgnoreCase))
-				return utxos.Where(u => u.BeforeFork).ToArray();
 			var selectedOutpoints = new HashSet<OutPoint>(selector.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(s => OutPoint.Parse(s)).ToArray());
 			return utxos.Where(u => selectedOutpoints.Contains(u.Outpoint)).ToArray();
 		}
