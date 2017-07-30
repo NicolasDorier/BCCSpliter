@@ -3,8 +3,11 @@ A command line utility for splitting your BTC from your BCC.
 
 ## Motivation
 The 1st august 2017, a minority of the community is creating an altcoin named BCC (Bitcoin Cash) whose initial distribution is holding of BTC at the time of the hard fork.
-This tools allow you to connect to your Bitcoin Core wallet, select coins you want to split, create a transaction only valid on BCC and broadcast it.
+
+This tool allows you to connect to your Bitcoin Core wallet, select coins you want to split, create a transaction only valid on BCC and broadcast it.
+
 BCC includes an opt-in replay protection: a new flag for signature `SIGHASH_FORKID` has been created in BCC. The signature scheme for this SIGHASH, is similar to segwit signature scheme.
+
 This mean that a valid `SIGHASH_FORKID` signature on BCC will not be valid on BTC chain. Making it easy to split your UTXO.
 
 ## Requirements
