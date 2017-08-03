@@ -13,6 +13,9 @@ using NBitcoin.Protocol.Behaviors;
 using System.Threading;
 using System.Net;
 using System.Threading.Tasks;
+using QBitNinja.Client;
+using QBitNinja.Client.Models;
+using BCCSpliter.DerivationStrategy;
 
 namespace BCCSpliter
 {
@@ -34,7 +37,7 @@ namespace BCCSpliter
 
 		public void Run()
 		{
-			Parser.Default.ParseArguments<SelectOptions, UnselectOptions, ConfirmOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help" });
+			Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, ConfirmOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help" });
 			bool quit = false;
 			while(!quit)
 			{
@@ -43,8 +46,9 @@ namespace BCCSpliter
 				var split = Console.ReadLine().Split(null);
 				try
 				{
-					Parser.Default.ParseArguments<SelectOptions, UnselectOptions, ConfirmOptions, QuitOptions, ListOptions, DumpOptions>(split)
+					Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, ConfirmOptions, QuitOptions, ListOptions, DumpOptions>(split)
 						.WithParsed<SelectOptions>(_ => Select(_))
+						.WithParsed<ImportOptions>(_ => ImportPrivateKeys(_))
 						.WithParsed<UnselectOptions>(_ => UnSelect(_))
 						.WithParsed<ListOptions>(_ => List(_))
 						.WithParsed<ConfirmOptions>(_ => Confirm(_))
@@ -57,9 +61,67 @@ namespace BCCSpliter
 				catch(FormatException)
 				{
 					Console.WriteLine("Invalid format");
-					Parser.Default.ParseArguments<SelectOptions, UnselectOptions, ConfirmOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help", split[0] });
+					Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, ConfirmOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help", split[0] });
 				}
 			}
+		}
+
+		private void ImportPrivateKeys(ImportOptions o)
+		{
+			if(o.ExtKey == null || o.Destination == null)
+				throw new FormatException();
+
+			var destination = BitcoinAddress.Create(o.Destination, RPCClient.Network);
+			BitcoinExtKey root = new BitcoinExtKey(o.ExtKey, RPCClient.Network);
+
+			var all = Scan(new BIP45P2SH11Strategy(root, false))
+			  .Concat(Scan(new BIP45P2SH11Strategy(root, true))).ToList();
+			DumpCoins(destination, all.Select(a => a.Item2), all.Select(a => a.Item1));
+		}
+
+		int forkBlockHeight = 478559;
+		private IEnumerable<Tuple<Key, Coin>> Scan(IStrategy derivationStrategy)
+		{
+			//List<Tuple<Key, Coin>> coins = new List<Tuple<Key, Coin>>();
+			var coins = new Dictionary<OutPoint, Tuple<Key, Coin>>();
+			QBitNinjaClient client = new QBitNinjaClient(RPCClient.Network);
+			int i = 0;
+			int gap = 20;
+			var balances = new List<Tuple<Derivation, Task<BalanceModel>>>();
+
+			while(true)
+			{
+				var derivation = derivationStrategy.Derive(i);
+				var address = derivation.ScriptPubKey.GetDestinationAddress(RPCClient.Network);
+				i++;				
+				balances.Add(Tuple.Create(derivation, client.GetBalanceBetween(new BalanceSelector(address), new BlockFeature(forkBlockHeight), null, false, false)));
+				if(balances.Count == gap)
+				{
+					var hasMoney = false;
+					foreach(var balance in balances)
+					{
+						foreach(var coin in balance.Item2.Result.Operations
+							.SelectMany(o => o.ReceivedCoins))
+						{
+							hasMoney = true;
+							var localCoin = (Coin)coin;
+							if(balance.Item1.Redeem != null)
+								localCoin = ((Coin)coin).ToScriptCoin(balance.Item1.Redeem);
+							coins.Add(localCoin.Outpoint, Tuple.Create(balance.Item1.Key, localCoin));
+						}
+						foreach(var coin in balance.Item2.Result.Operations
+							.SelectMany(o => o.SpentCoins))
+						{
+							coins.Remove(coin.Outpoint);
+						}
+					}
+					balances.Clear();
+					if(!hasMoney)
+						break;
+				}
+			}
+
+			return coins.Values;
 		}
 
 		private void Confirm(ConfirmOptions o)
@@ -83,6 +145,16 @@ namespace BCCSpliter
 				return;
 			}
 			Logs.Main.LogInformation("Dumping " + utxos.Length + " UTXOs");
+
+			var coins = utxos.Select(u => u.AsCoin());
+			var keys = FetchKeys(coins);
+			DumpCoins(destination, coins, keys);
+		}
+
+		private void DumpCoins(BitcoinAddress destination, IEnumerable<Coin> coins, IEnumerable<Key> keys)
+		{
+			var total = coins.Select(u => u.Amount).Sum();
+			var fee = Money.Zero;
 			FeeRate feeRate = null;
 			try
 			{
@@ -98,10 +170,6 @@ namespace BCCSpliter
 					return;
 				}
 			}
-
-			var total = utxos.Select(u => u.Amount).Sum();
-			var fee = Money.Zero;
-			var coins = utxos.Select(u => u.AsCoin());
 			TransactionBuilder builder = new TransactionBuilder();
 			builder.AddCoins(coins);
 			builder.Send(destination, total);
@@ -116,7 +184,7 @@ namespace BCCSpliter
 			}
 
 			builder = new TransactionBuilder();
-			builder.AddKeys(FetchKeys(coins).ToArray());
+			builder.AddKeys(keys.ToArray());
 			builder.AddCoins(coins);
 			builder.Send(destination, total - fee);
 			builder.SendFees(fee);
@@ -185,7 +253,7 @@ namespace BCCSpliter
 			return utxos;
 		}
 
-		private IEnumerable<ISecret> FetchKeys(IEnumerable<Coin> coins)
+		private IEnumerable<Key> FetchKeys(IEnumerable<Coin> coins)
 		{
 			var getSecrets = new List<Task<BitcoinSecret>>();
 			var rpc = RPCClient.PrepareBatch();
@@ -197,7 +265,7 @@ namespace BCCSpliter
 				getSecrets.Add(rpc.DumpPrivKeyAsync(address));
 			}
 			rpc.SendBatch();
-			return getSecrets.Select(c => c.Result).ToArray();
+			return getSecrets.Select(c => c.Result.PrivateKey).ToArray();
 		}
 
 		private void List(ListOptions o)
@@ -272,12 +340,12 @@ namespace BCCSpliter
 			var utxos = RPCClient.ListUnspent(0, 9999999).Where(i => i.IsSpendable)
 				.Where(c => true) //Filter what can't be splitted
 				.Select(i => new UTXO()
-			{
-				Outpoint = i.OutPoint,
-				Amount = i.Amount,
-				ScriptPubKey = i.ScriptPubKey,
-				RedeemScript = i.RedeemScript
-			}).ToArray();
+				{
+					Outpoint = i.OutPoint,
+					Amount = i.Amount,
+					ScriptPubKey = i.ScriptPubKey,
+					RedeemScript = i.RedeemScript
+				}).ToArray();
 			return utxos;
 		}
 

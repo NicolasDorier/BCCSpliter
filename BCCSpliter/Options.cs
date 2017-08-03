@@ -15,6 +15,21 @@ namespace BCCSpliter
 		}
 	}
 
+	[Verb("dumphd", HelpText = "Dump from external hd private key (Using P2SH/BIP45/1-1, please ask me for broader support)")]
+	public class ImportOptions
+	{
+		[Value(0, HelpText = "The root private key")]
+		public string ExtKey
+		{
+			get; set;
+		}
+		[Value(1, HelpText = "The destination to dump")]
+		public string Destination
+		{
+			get; set;
+		}
+	}
+
 	[Verb("unselect", HelpText = "Unselect UTXOs to dump")]
 	public class UnselectOptions
 	{
