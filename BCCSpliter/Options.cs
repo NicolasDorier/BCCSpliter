@@ -50,16 +50,6 @@ namespace BCCSpliter
 		}
 	}
 
-	[Verb("confirm", HelpText = "Unlock UTXO in your BTC wallet once they have been confirmed on BCC chain")]
-	public class ConfirmOptions
-	{
-		[Value(0, HelpText = "Transaction Id which got confirmed on BCC chain")]
-		public string TransactionId
-		{
-			get; set;
-		}
-	}
-
 	[Verb("exit", HelpText = "Quit.")]
 	public class QuitOptions
 	{

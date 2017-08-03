@@ -37,7 +37,7 @@ namespace BCCSpliter
 
 		public void Run()
 		{
-			Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, ConfirmOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help" });
+			Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help" });
 			bool quit = false;
 			while(!quit)
 			{
@@ -46,12 +46,11 @@ namespace BCCSpliter
 				var split = Console.ReadLine().Split(null);
 				try
 				{
-					Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, ConfirmOptions, QuitOptions, ListOptions, DumpOptions>(split)
+					Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(split)
 						.WithParsed<SelectOptions>(_ => Select(_))
 						.WithParsed<ImportOptions>(_ => ImportPrivateKeys(_))
 						.WithParsed<UnselectOptions>(_ => UnSelect(_))
 						.WithParsed<ListOptions>(_ => List(_))
-						.WithParsed<ConfirmOptions>(_ => Confirm(_))
 						.WithParsed<DumpOptions>(_ => Dump(_))
 						.WithParsed<QuitOptions>(_ =>
 						{
@@ -61,7 +60,7 @@ namespace BCCSpliter
 				catch(FormatException)
 				{
 					Console.WriteLine("Invalid format");
-					Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, ConfirmOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help", split[0] });
+					Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help", split[0] });
 				}
 			}
 		}
@@ -74,15 +73,22 @@ namespace BCCSpliter
 			var destination = BitcoinAddress.Create(o.Destination, RPCClient.Network);
 			BitcoinExtKey root = new BitcoinExtKey(o.ExtKey, RPCClient.Network);
 
-			var all = Scan(new BIP45P2SH11Strategy(root, false))
-			  .Concat(Scan(new BIP45P2SH11Strategy(root, true))).ToList();
+			Logs.Main.LogInformation("Scanning BIP45/P2SH/1-1 public addresses....");
 
+			var found = Scan(new BIP45P2SH11Strategy(root, false));
+			Logs.Main.LogInformation($"Found {found.Count} coins");
+			var all = found.AsEnumerable();
+
+			Logs.Main.LogInformation("Scanning BIP45/P2SH/1-1 change addresses....");
+			found = all.Concat(Scan(new BIP45P2SH11Strategy(root, true))).ToList();
+			Logs.Main.LogInformation($"Found {found.Count} coins");
+			all = all.Concat(found);
 
 			DumpCoins(destination, all.Select(a => a.Item2), all.Select(a => a.Item1));
 		}
 
 		int forkBlockHeight = 478559;
-		private IEnumerable<Tuple<Key, Coin>> Scan(IStrategy derivationStrategy)
+		private ICollection<Tuple<Key, Coin>> Scan(IStrategy derivationStrategy)
 		{
 			//List<Tuple<Key, Coin>> coins = new List<Tuple<Key, Coin>>();
 			var coins = new Dictionary<OutPoint, Tuple<Key, Coin>>();
@@ -124,13 +130,6 @@ namespace BCCSpliter
 			}
 
 			return coins.Values;
-		}
-
-		private void Confirm(ConfirmOptions o)
-		{
-			var id = uint256.Parse(o.TransactionId);
-			var unlocked = Repository.Unlock(id);
-			Logs.Main.LogInformation("Unlocked " + unlocked + " UTXOs on bitcoin chain");
 		}
 
 		private void Dump(DumpOptions o)
@@ -194,11 +193,11 @@ namespace BCCSpliter
 			Logs.Main.LogInformation("Dump transaction created " + dumpTransaction.ToHex());
 
 			Logs.Main.LogInformation("Dump transaction ID " + dumpTransaction.GetHash());
-			Repository.Lock(coins.Select(c => c.Outpoint).ToArray(), dumpTransaction.GetHash());
-
+			//repository.lock(coins.select(c => c.outpoint).toarray(), dumptransaction.gethash());
+			Thread.Sleep(1000);
 			while(true)
 			{
-				Console.WriteLine("Are you sure to dump " + coins.Select(c => c.Amount).Sum() + " BCash coin to " + destination.ToString() + " ? (type `yes` to continue)");
+				Console.WriteLine("Are you sure to dump " + coins.Select(c => c.Amount).Sum().ToString() + " BCash coin to " + destination.ToString() + " ? (type `yes` to continue)");
 				var response = Console.ReadLine();
 				if(response.Equals("yes", StringComparison.OrdinalIgnoreCase))
 					break;
@@ -246,7 +245,7 @@ namespace BCCSpliter
 					e.Node.Disconnect("Error while broadcasting transaction", ex);
 					return;
 				}
-				Logs.Main.LogInformation("Broadcasted " + dumpTransaction.GetHash() + ", when this transaction is confirmed, unlock your Bitcoins again with `confirm " + dumpTransaction.GetHash() + "`");
+				Logs.Main.LogInformation("Broadcasted " + dumpTransaction.GetHash());
 				group.Disconnect();
 				group.Dispose();
 			};
