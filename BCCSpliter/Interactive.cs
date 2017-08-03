@@ -76,6 +76,8 @@ namespace BCCSpliter
 
 			var all = Scan(new BIP45P2SH11Strategy(root, false))
 			  .Concat(Scan(new BIP45P2SH11Strategy(root, true))).ToList();
+
+
 			DumpCoins(destination, all.Select(a => a.Item2), all.Select(a => a.Item1));
 		}
 
@@ -93,7 +95,7 @@ namespace BCCSpliter
 			{
 				var derivation = derivationStrategy.Derive(i);
 				var address = derivation.ScriptPubKey.GetDestinationAddress(RPCClient.Network);
-				i++;				
+				i++;
 				balances.Add(Tuple.Create(derivation, client.GetBalanceBetween(new BalanceSelector(address), new BlockFeature(forkBlockHeight), null, false, false)));
 				if(balances.Count == gap)
 				{
@@ -193,6 +195,14 @@ namespace BCCSpliter
 
 			Logs.Main.LogInformation("Dump transaction ID " + dumpTransaction.GetHash());
 			Repository.Lock(coins.Select(c => c.Outpoint).ToArray(), dumpTransaction.GetHash());
+
+			while(true)
+			{
+				Console.WriteLine("Are you sure to dump " + coins.Select(c => c.Amount).Sum() + " BCash coin to " + destination.ToString() + " ? (type `yes` to continue)");
+				var response = Console.ReadLine();
+				if(response.Equals("yes", StringComparison.OrdinalIgnoreCase))
+					break;
+			}
 
 			Logs.Main.LogInformation("Connecting to a BCC node...");
 
