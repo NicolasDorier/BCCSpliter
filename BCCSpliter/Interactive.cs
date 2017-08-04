@@ -87,17 +87,49 @@ namespace BCCSpliter
 			var destination = BitcoinAddress.Create(o.Destination, RPCClient.Network);
 			BitcoinExtKey root = new BitcoinExtKey(o.ExtKey, RPCClient.Network);
 
-			Logs.Main.LogInformation("Scanning BIP45/P2SH/1-1 public addresses....");
+			var strategies = new[]
+			{
+				new
+				{
+					Description = "BIP45/P2SH/1-1",
+					Strategy = (IStrategy)new BIP45P2SH11Strategy(root, false),
+					ChangeStrategy = (IStrategy)new BIP45P2SH11Strategy(root, true),
+				},
+				new
+				{
+					Description = "BIP44",
+					Strategy = (IStrategy)new BIP44P2PKHStrategy(root, false),
+					ChangeStrategy = (IStrategy)new BIP44P2PKHStrategy(root, true),
+				},
+				new
+				{
+					Description = "Direct",
+					Strategy = (IStrategy)new DirectDerivationStrategy(root, false),
+					ChangeStrategy = (IStrategy)new DirectDerivationStrategy(root, true),
+				}
+			};
 
-			var found = Scan(new BIP45P2SH11Strategy(root, false));
-			Logs.Main.LogInformation($"Found {found.Count} coins");
-			var all = found.AsEnumerable();
+			IEnumerable<Tuple<Key, Coin>> all = new Tuple<Key, Coin>[0];
 
-			Logs.Main.LogInformation("Scanning BIP45/P2SH/1-1 change addresses....");
-			found = all.Concat(Scan(new BIP45P2SH11Strategy(root, true))).ToList();
-			Logs.Main.LogInformation($"Found {found.Count} coins");
-			all = all.Concat(found);
+			foreach(var strategy in strategies)
+			{
+				Logs.Main.LogInformation("Scanning " + strategy.Description + " path");
+				var found = Scan(strategy.Strategy);
+				if(found.Count != 0)
+				{
+					Logs.Main.LogInformation($"Found {found.Count} coins");
+					all = all.Concat(found);
+					if(strategy.ChangeStrategy != null)
+					{
+						Logs.Main.LogInformation($"Scanning change addresses");
+						found = Scan(strategy.ChangeStrategy);
+						Logs.Main.LogInformation($"Found {found.Count} coins");
+						all = all.Concat(found);
+					}
+				}
+			}
 
+			
 			DumpCoins(destination, all.Select(a => a.Item2), all.Select(a => a.Item1));
 		}
 
@@ -250,6 +282,7 @@ namespace BCCSpliter
 				group.AllowSameGroup = true;
 			}
 
+			ManualResetEvent done = new ManualResetEvent(false);
 			group.ConnectedNodes.Added += (s, e) =>
 			{
 				Logs.Main.LogInformation("Connected to " + e.Node.RemoteSocketEndpoint);
@@ -269,11 +302,13 @@ namespace BCCSpliter
 					return;
 				}
 				Logs.Main.LogInformation("Broadcasted " + dumpTransaction.GetHash());
+				done.Set();
 				group.Disconnect();
 				group.Dispose();
 			};
 
 			group.Connect();
+			done.WaitOne();
 		}
 
 		private UTXO[] GetDumpingUTXOs()
