@@ -37,7 +37,7 @@ namespace BCCSpliter
 
 		public void Run()
 		{
-			Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help" });
+			Parser.Default.ParseArguments<SelectOptions, ImportOptions, ImportSecretOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help" });
 			bool quit = false;
 			while(!quit)
 			{
@@ -46,9 +46,10 @@ namespace BCCSpliter
 				var split = Console.ReadLine().Split(null);
 				try
 				{
-					Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(split)
+					Parser.Default.ParseArguments<SelectOptions, ImportOptions, ImportSecretOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(split)
 						.WithParsed<SelectOptions>(_ => Select(_))
 						.WithParsed<ImportOptions>(_ => ImportPrivateKeys(_))
+						.WithParsed<ImportSecretOptions>(_ => ImportPrivateKey(_))
 						.WithParsed<UnselectOptions>(_ => UnSelect(_))
 						.WithParsed<ListOptions>(_ => List(_))
 						.WithParsed<DumpOptions>(_ => Dump(_))
@@ -60,9 +61,22 @@ namespace BCCSpliter
 				catch(FormatException)
 				{
 					Console.WriteLine("Invalid format");
-					Parser.Default.ParseArguments<SelectOptions, ImportOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help", split[0] });
+					Parser.Default.ParseArguments<SelectOptions, ImportOptions, ImportSecretOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help", split[0] });
 				}
 			}
+		}
+
+		private void ImportPrivateKey(ImportSecretOptions o)
+		{
+			if(o.Key == null || o.Destination == null)
+				throw new FormatException();
+			var secret = new BitcoinSecret(o.Key, RPCClient.Network);
+			var destination = BitcoinAddress.Create(o.Destination, RPCClient.Network);
+
+			QBitNinjaClient client = CreateExplorer();
+			var coins = GetPreforkCoins(client, secret.GetAddress(), null).GetAwaiter().GetResult();
+			Logs.Main.LogInformation($"Found {coins.Count()} coins");
+			DumpCoins(destination, coins, new[] { secret.PrivateKey });
 		}
 
 		private void ImportPrivateKeys(ImportOptions o)
@@ -92,35 +106,26 @@ namespace BCCSpliter
 		{
 			//List<Tuple<Key, Coin>> coins = new List<Tuple<Key, Coin>>();
 			var coins = new Dictionary<OutPoint, Tuple<Key, Coin>>();
-			QBitNinjaClient client = new QBitNinjaClient(RPCClient.Network);
+			QBitNinjaClient client = CreateExplorer();
 			int i = 0;
 			int gap = 20;
-			var balances = new List<Tuple<Derivation, Task<BalanceModel>>>();
+			var balances = new List<Tuple<Derivation, Task<Coin[]>>>();
 
 			while(true)
 			{
 				var derivation = derivationStrategy.Derive(i);
 				var address = derivation.ScriptPubKey.GetDestinationAddress(RPCClient.Network);
 				i++;
-				balances.Add(Tuple.Create(derivation, client.GetBalanceBetween(new BalanceSelector(address), new BlockFeature(forkBlockHeight), null, false, false)));
+				balances.Add(Tuple.Create(derivation, GetPreforkCoins(client, address, derivation.Redeem)));
 				if(balances.Count == gap)
 				{
 					var hasMoney = false;
 					foreach(var balance in balances)
 					{
-						foreach(var coin in balance.Item2.Result.Operations
-							.SelectMany(o => o.ReceivedCoins))
+						foreach(var coin in balance.Item2.Result)
 						{
 							hasMoney = true;
-							var localCoin = (Coin)coin;
-							if(balance.Item1.Redeem != null)
-								localCoin = ((Coin)coin).ToScriptCoin(balance.Item1.Redeem);
-							coins.Add(localCoin.Outpoint, Tuple.Create(balance.Item1.Key, localCoin));
-						}
-						foreach(var coin in balance.Item2.Result.Operations
-							.SelectMany(o => o.SpentCoins))
-						{
-							coins.Remove(coin.Outpoint);
+							coins.Add(coin.Outpoint, Tuple.Create(balance.Item1.Key, coin));
 						}
 					}
 					balances.Clear();
@@ -130,6 +135,19 @@ namespace BCCSpliter
 			}
 
 			return coins.Values;
+		}
+
+		private QBitNinjaClient CreateExplorer()
+		{
+			return new QBitNinjaClient(RPCClient.Network);
+		}
+
+		private async Task<Coin[]> GetPreforkCoins(QBitNinjaClient client, BitcoinAddress address, Script redeem)
+		{
+			var balance = await client.GetBalanceBetween(new BalanceSelector(address), new BlockFeature(forkBlockHeight), null, false, true).ConfigureAwait(false);
+			return balance.Operations.SelectMany(o => o.ReceivedCoins).OfType<Coin>()
+				.Select(c => redeem == null ? c : c.ToScriptCoin(redeem))
+				.ToArray();
 		}
 
 		private void Dump(DumpOptions o)
@@ -154,6 +172,11 @@ namespace BCCSpliter
 
 		private void DumpCoins(BitcoinAddress destination, IEnumerable<Coin> coins, IEnumerable<Key> keys)
 		{
+			if(coins.Count() == 0)
+			{
+				Logs.Main.LogInformation("No coin to dump");
+				return;
+			}
 			var total = coins.Select(u => u.Amount).Sum();
 			var fee = Money.Zero;
 			FeeRate feeRate = null;

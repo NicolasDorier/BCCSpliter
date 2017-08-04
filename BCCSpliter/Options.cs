@@ -30,6 +30,21 @@ namespace BCCSpliter
 		}
 	}
 
+	[Verb("dumpprivkey", HelpText = "Dump from a BIP58 formatted private key (typically used with paper wallet)")]
+	public class ImportSecretOptions
+	{
+		[Value(0, HelpText = "The private key")]
+		public string Key
+		{
+			get; set;
+		}
+		[Value(1, HelpText = "The destination to dump")]
+		public string Destination
+		{
+			get; set;
+		}
+	}
+
 	[Verb("unselect", HelpText = "Unselect UTXOs to dump")]
 	public class UnselectOptions
 	{
