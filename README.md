@@ -10,6 +10,11 @@ BCC includes an opt-in replay protection: a new flag for signature `SIGHASH_FORK
 
 This mean that a valid `SIGHASH_FORKID` signature on BCC will not be valid on BTC chain. Making it easy to split your UTXO.
 
+### Privacy disclaimer
+
+If you are dumping coins from your bitcoin core, no external resources than your node is used.
+For other use case (`dumpprivkey` and `dumphd`), a block explorer is used and leak your addresses. (QBitNinja)
+
 ## Requirements
 
 As a user, you will need:
@@ -81,6 +86,30 @@ dump mpxsXnCn1ScUVZmgEDgkjMZMV3NAAVzSdN
 ```
 
 The selected UTXO are now safe to be spent on BTC chain.
+
+### How to dump my paper wallet key?
+
+Use `dumprivkey BASE58PRIVKEY DESTINATION`
+
+Example:
+```
+dumpprivkey cRkaHCt5FuD7x4SR5hAP5yWA5JnfhAYrVREfgUG2YdQ9bSnBjdgb miUraop8F4R4kVDczUfucF3itB4t6wtB5q 
+```
+
+A BlockExplorer (QBitNinja) is used for scanning your funds.
+
+### How to dump my HD key?
+
+Use `dumphd HDKEY DESTINATION`
+
+Example:
+```
+dumphd xpriv..... miUraop8F4R4kVDczUfucF3itB4t6wtB5q 
+```
+
+A BlockExplorer (QBitNinja) is used for scanning your funds.
+
+If it does not find your coin, please open an issue. There is several way of deriving addresses from HD, and I lazily support them.
 
 ## How to configure?
 If you are not using standard install for bitcoind, you will have to change the configuration file:
