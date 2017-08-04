@@ -44,7 +44,7 @@ namespace BCCSpliter
 				Thread.Sleep(100);
 				Console.Write(">>> ");
 				var split = Console.ReadLine().Split(null) ?? new string[0];
-				split = split.Select(s => s.Trim()).ToArray();
+				split = split.Where(s => !String.IsNullOrEmpty(s)).Select(s => s.Trim()).ToArray();
 				try
 				{
 					Parser.Default.ParseArguments<SelectOptions, ImportOptions, ImportSecretOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(split)
