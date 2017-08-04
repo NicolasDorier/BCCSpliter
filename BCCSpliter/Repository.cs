@@ -31,6 +31,12 @@ namespace BCCSpliter
 			return total;
 		}
 
+		public void RemoveSelected(UTXO[] utxos)
+		{
+			foreach(var utxo in utxos)
+				_Repo.Delete<UTXO>("1", utxo.Outpoint.ToString());
+		}
+
 		internal int Unlock(uint256 transactionId)
 		{
 			int unlocked = 0;

@@ -396,6 +396,7 @@ namespace BCCSpliter
 			var utxos = Repository.GetSelectedUTXOS();
 			utxos = Select(o.Selector, utxos);
 			Logs.Main.LogInformation("Unselected " + utxos.Length + " UTXOs");
+			Repository.RemoveSelected(utxos);
 		}
 	}
 }
