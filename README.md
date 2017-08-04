@@ -66,7 +66,6 @@ The process is the following:
 
 1. Select the UTXOs your want to spend.
 2. Use the command `dump <BitcoinAddress on BCC>` (This will create and broadcast a valid on BCC only, and lock the UTXOs you used in Bitcoin Core wallet)
-3. Once the dump transaction is confirmed, use `confirm <dumpTxId>` to unlock your BTC in your BTC wallet.
 
 Typical flow:
 
@@ -79,8 +78,6 @@ select 489dc8f0925a99fe772f0d5cd5f05cda77bf29449ec3ee266575add6312d6e04-2
 list
 # Then dump
 dump mpxsXnCn1ScUVZmgEDgkjMZMV3NAAVzSdN
-# Wait that the dump transaction get confirmed on your favorite exchange, then unlock your coin in your Bitcoin Core wallet
-confirm 38348679e28c9df785dd0d70b5db5b45986ed107ebbe1248bb7bfbdca74cc063
 ```
 
 The selected UTXO are now safe to be spent on BTC chain.
