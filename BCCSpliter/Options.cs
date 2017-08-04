@@ -15,16 +15,22 @@ namespace BCCSpliter
 		}
 	}
 
-	[Verb("dumphd", HelpText = "Dump from external hd private key (Using P2SH/BIP45/1-1, please ask me for broader support)")]
+	[Verb("dumphd", HelpText = "Dump from external hd private key or BIP39 mnemonic (Using P2SH/BIP45/1-1, please ask me for broader support)")]
 	public class ImportOptions
 	{
-		[Value(0, HelpText = "The root private key")]
+		[Value(0, HelpText = "The root private key or mnemonic")]
 		public string ExtKey
 		{
 			get; set;
 		}
 		[Value(1, HelpText = "The destination to dump")]
 		public string Destination
+		{
+			get; set;
+		}
+
+		[Value(2, HelpText = "Mnemonic passphrase if needed")]
+		public string Passphrase
 		{
 			get; set;
 		}

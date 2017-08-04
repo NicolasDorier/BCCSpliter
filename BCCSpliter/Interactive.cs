@@ -85,9 +85,25 @@ namespace BCCSpliter
 			if(o.ExtKey == null || o.Destination == null)
 				throw new FormatException();
 
-			var destination = BitcoinAddress.Create(o.Destination, RPCClient.Network);
-			BitcoinExtKey root = new BitcoinExtKey(o.ExtKey, RPCClient.Network);
 
+			var destination = BitcoinAddress.Create(o.Destination, RPCClient.Network);
+			BitcoinExtKey root = null;
+			try
+			{
+				root = new BitcoinExtKey(o.ExtKey, RPCClient.Network);
+			}
+			catch(FormatException ex)
+			{
+				try
+				{
+					root = new BitcoinExtKey(new Mnemonic(o.ExtKey).DeriveExtKey(o.Passphrase), RPCClient.Network);
+				}
+				catch(FormatException)
+				{
+					Console.WriteLine("Invalid ExtKey or mnemonic");
+					throw new FormatException();
+				}
+			}
 			var strategies = new[]
 			{
 				new
@@ -130,7 +146,7 @@ namespace BCCSpliter
 				}
 			}
 
-			
+
 			DumpCoins(destination, all.Select(a => a.Item2), all.Select(a => a.Item1));
 		}
 
