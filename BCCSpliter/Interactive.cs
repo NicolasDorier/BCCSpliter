@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using QBitNinja.Client;
 using QBitNinja.Client.Models;
 using BCCSpliter.DerivationStrategy;
+using System.Net.Http;
 
 namespace BCCSpliter
 {
@@ -239,8 +240,7 @@ namespace BCCSpliter
 					feeRate = new FeeRate(Money.Satoshis(30), 1);
 				else
 				{
-					Logs.Main.LogWarning("Fee estimation unavailable, you need to wait Bitcoin Core to properly sync and retry to dump");
-					return;
+					feeRate = GetBitcoinFee();
 				}
 			}
 			TransactionBuilder builder = new TransactionBuilder();
@@ -326,6 +326,21 @@ namespace BCCSpliter
 
 			group.Connect();
 			done.WaitOne();
+		}
+
+		private static FeeRate GetBitcoinFee()
+		{
+			using(var http = new HttpClient())
+			{
+				var result = http.GetAsync("https://bitcoinfees.21.co/api/v1/fees/recommended")
+					.GetAwaiter()
+					.GetResult()
+					.Content.ReadAsStringAsync()
+					.GetAwaiter()
+					.GetResult();
+				var match = System.Text.RegularExpressions.Regex.Match(result, "\"hourFee\":([^}]+)");
+				return new FeeRate(int.Parse(match.Groups[1].Value), 1);
+			}
 		}
 
 		private UTXO[] GetDumpingUTXOs()
