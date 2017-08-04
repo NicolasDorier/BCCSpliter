@@ -65,7 +65,7 @@ dotnet run -testnet
 dotnet run -regtest
 ```
 
-## How to use?
+## How to dump coin in my Bitcoin Core Wallet?
 
 The process is the following:
 
