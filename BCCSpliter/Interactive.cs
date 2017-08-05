@@ -218,6 +218,7 @@ namespace BCCSpliter
 			var coins = utxos.Select(u => u.AsCoin());
 			var keys = FetchKeys(coins);
 			DumpCoins(destination, coins, keys);
+			Repository.RemoveSelected(utxos);
 		}
 
 		private void DumpCoins(BitcoinAddress destination, IEnumerable<Coin> coins, IEnumerable<Key> keys)
