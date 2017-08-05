@@ -22,7 +22,9 @@ As a user, you will need:
 1. [NET Core SDK 1.0.4](https://github.com/dotnet/core/blob/master/release-notes/download-archives/1.0.4-sdk-download.md) (see below)
 2. At least [Bitcoin Core 0.13.1](https://bitcoin.org/bin/bitcoin-core-0.13.1/) fully sync, rpc enabled.
 
-You can easily install the SDK on ubuntu systems after having installed the runtime by running
+First add the repository for the SDK by following these [instructions](https://www.microsoft.com/net/core#linuxubuntu)
+
+Afterwards you can install the runtime by running
 ```
 sudo apt-get install dotnet-dev-1.0.4
 ```
@@ -35,6 +37,10 @@ As a developer, you need additionally one of those:
 2. [Visual studio code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp) (Cross plateform)
 
 ## How to build?
+
+``` 
+sudo apt-get install git
+```
 
 Given the requirements are installed in your system and BitcoinD is running:
 
