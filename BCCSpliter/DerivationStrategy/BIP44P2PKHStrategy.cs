@@ -9,9 +9,9 @@ namespace BCCSpliter.DerivationStrategy
 	{
 		private ExtKey rootDerivation;
 
-		public BIP44P2PKHStrategy(ExtKey root, bool change)
+		public BIP44P2PKHStrategy(ExtKey root, int account, bool change)
 		{
-			rootDerivation = root.Derive(new KeyPath("m/44'/0'/0'/" + (change ? "1" : "0")));
+			rootDerivation = root.Derive(new KeyPath("m/44'/0'/" + account + "'/" + (change ? "1" : "0")));
 		}
 		public Derivation Derive(int i)
 		{

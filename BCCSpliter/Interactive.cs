@@ -14,9 +14,9 @@ using System.Threading;
 using System.Net;
 using System.Threading.Tasks;
 using QBitNinja.Client;
-using QBitNinja.Client.Models;
 using BCCSpliter.DerivationStrategy;
 using System.Net.Http;
+using QBitNinja.Client.Models;
 
 namespace BCCSpliter
 {
@@ -44,8 +44,9 @@ namespace BCCSpliter
 			{
 				Thread.Sleep(100);
 				Console.Write(">>> ");
-				var split = Console.ReadLine().Split(null) ?? new string[0];
+				var split = SplitArguments(Console.ReadLine());
 				split = split.Where(s => !String.IsNullOrEmpty(s)).Select(s => s.Trim()).ToArray();
+
 				try
 				{
 					Parser.Default.ParseArguments<SelectOptions, ImportOptions, ImportSecretOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(split)
@@ -66,6 +67,29 @@ namespace BCCSpliter
 					Parser.Default.ParseArguments<SelectOptions, ImportOptions, ImportSecretOptions, UnselectOptions, QuitOptions, ListOptions, DumpOptions>(new[] { "help", split[0] });
 				}
 			}
+		}
+
+		public static string[] SplitArguments(string commandLine)
+		{
+			var parmChars = commandLine.ToCharArray();
+			var inSingleQuote = false;
+			var inDoubleQuote = false;
+			for(var index = 0; index < parmChars.Length; index++)
+			{
+				if(parmChars[index] == '"' && !inSingleQuote)
+				{
+					inDoubleQuote = !inDoubleQuote;
+					parmChars[index] = '\n';
+				}
+				if(parmChars[index] == '\'' && !inDoubleQuote)
+				{
+					inSingleQuote = !inSingleQuote;
+					parmChars[index] = '\n';
+				}
+				if(!inSingleQuote && !inDoubleQuote && parmChars[index] == ' ')
+					parmChars[index] = '\n';
+			}
+			return (new string(parmChars)).Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 		}
 
 		private void ImportPrivateKey(ImportSecretOptions o)
@@ -105,6 +129,8 @@ namespace BCCSpliter
 					throw new FormatException();
 				}
 			}
+
+			int bip44Account = 0;
 			var strategies = new[]
 			{
 				new
@@ -115,9 +141,9 @@ namespace BCCSpliter
 				},
 				new
 				{
-					Description = "BIP44",
-					Strategy = (IStrategy)new BIP44P2PKHStrategy(root, false),
-					ChangeStrategy = (IStrategy)new BIP44P2PKHStrategy(root, true),
+					Description = $"BIP44 (Account {bip44Account})",
+					Strategy = (IStrategy)new BIP44P2PKHStrategy(root, bip44Account, false),
+					ChangeStrategy = (IStrategy)new BIP44P2PKHStrategy(root,bip44Account, true),
 				},
 				new
 				{
@@ -133,17 +159,15 @@ namespace BCCSpliter
 			{
 				Logs.Main.LogInformation("Scanning " + strategy.Description + " path");
 				var found = Scan(strategy.Strategy);
-				if(found.Count != 0)
+				Logs.Main.LogInformation($"Found {found.Count} coins");
+				all = all.Concat(found);
+				if(strategy.ChangeStrategy != null)
 				{
+
+					Logs.Main.LogInformation($"Scanning change addresses");
+					found = Scan(strategy.ChangeStrategy);
 					Logs.Main.LogInformation($"Found {found.Count} coins");
 					all = all.Concat(found);
-					if(strategy.ChangeStrategy != null)
-					{
-						Logs.Main.LogInformation($"Scanning change addresses");
-						found = Scan(strategy.ChangeStrategy);
-						Logs.Main.LogInformation($"Found {found.Count} coins");
-						all = all.Concat(found);
-					}
 				}
 			}
 
