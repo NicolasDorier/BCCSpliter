@@ -150,6 +150,12 @@ namespace BCCSpliter
 					Description = "Direct",
 					Strategy = (IStrategy)new DirectDerivationStrategy(root, false),
 					ChangeStrategy = (IStrategy)new DirectDerivationStrategy(root, true),
+				},
+				new
+				{
+					Description = "Bitcoin Core",
+					Strategy = (IStrategy)new BitcoinCoreDerivationStrategy(root, false),
+					ChangeStrategy = (IStrategy)new BitcoinCoreDerivationStrategy(root, true),
 				}
 			};
 
@@ -157,7 +163,7 @@ namespace BCCSpliter
 
 			foreach(var strategy in strategies)
 			{
-				Logs.Main.LogInformation("Scanning " + strategy.Description + " path");
+				Logs.Main.LogInformation("Scanning with strategy \"" + strategy.Description + "\"");
 				var found = Scan(strategy.Strategy);
 				Logs.Main.LogInformation($"Found {found.Count} coins");
 				all = all.Concat(found);
