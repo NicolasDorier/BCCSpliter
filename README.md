@@ -128,6 +128,12 @@ Supported derivation scheme are:
 
 Let me know if your wallet derivation strategy is not supported. (In which case you would see 0 coins to dump, contrary to what you expect)
 
+#### Note for copay
+
+Note that some copay wallet may have [this bug](https://github.com/iancoleman/bip39/issues/58), in which case, even if your wallet is  using a supported derivation scheme, this tool will not find your coins.
+
+If your wallet is using BIP44 (m/44'/0'/*account*'/*change*/*i*), then get the HD private key of path  (m/44'/0'/*account*') by using the tools described in [these instructions](https://github.com/bitpay/copay#wallet-export-format), and use that instead with the `dumphd` command.
+
 ## How to configure?
 If you are not using standard install for bitcoind, you will have to change the configuration file:
 In Windows it is located on 
