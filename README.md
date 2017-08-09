@@ -71,7 +71,9 @@ dotnet run -testnet
 dotnet run -regtest
 ```
 
-## How to dump coin in my Bitcoin Core Wallet?
+## How to dump
+
+### From my Bitcoin Core Wallet?
 
 The process is the following:
 
@@ -93,7 +95,7 @@ dump mpxsXnCn1ScUVZmgEDgkjMZMV3NAAVzSdN
 
 The selected UTXO are now safe to be spent on BTC chain.
 
-### How to dump my paper wallet key?
+### From my paper wallet key?
 
 Use `dumprivkey BASE58PRIVKEY DESTINATION`
 
@@ -104,7 +106,7 @@ dumpprivkey cRkaHCt5FuD7x4SR5hAP5yWA5JnfhAYrVREfgUG2YdQ9bSnBjdgb miUraop8F4R4kVD
 
 A BlockExplorer (QBitNinja) is used for scanning your funds.
 
-### How to dump my HD key?
+### From my HD key?
 
 Use `dumphd HDKEY DESTINATION`
 
@@ -116,6 +118,15 @@ dumphd xpriv..... miUraop8F4R4kVDczUfucF3itB4t6wtB5q
 A BlockExplorer (QBitNinja) is used for scanning your funds.
 
 If it does not find your coin, please open an issue. There is several way of deriving addresses from HD, and I lazily support them.
+
+Supported derivation scheme are:
+
+* BIP45/P2SH/1-1 (old copay)
+* BIP44 Account 0 (you can change the account to dump by changing [this line](https://github.com/NicolasDorier/BCCSpliter/blob/e4255bb0f52af9f20f5bd192b26873d41c393e15/BCCSpliter/Interactive.cs#L133))
+* Direct (Breadwallet)
+* Bitcoin Core
+
+Let me know if your wallet derivation strategy is not supported. (In which case you would see 0 coins to dump, contrary to what you expect)
 
 ## How to configure?
 If you are not using standard install for bitcoind, you will have to change the configuration file:
