@@ -101,8 +101,8 @@ namespace BCCSpliter
 
 			QBitNinjaClient client = CreateExplorer();
 			var coins = GetPreforkCoins(client, secret.GetAddress(), null).GetAwaiter().GetResult();
-			Logs.Main.LogInformation($"Found {coins.Count()} coins");
-			DumpCoins(destination, coins, new[] { secret.PrivateKey });
+			Logs.Main.LogInformation($"Found {coins.Item2.Count()} coins");
+			DumpCoins(destination, coins.Item2, new[] { secret.PrivateKey });
 		}
 
 		private void ImportPrivateKeys(ImportOptions o)
@@ -189,22 +189,23 @@ namespace BCCSpliter
 			QBitNinjaClient client = CreateExplorer();
 			int i = 0;
 			int gap = 20;
-			var balances = new List<Tuple<Derivation, Task<Coin[]>>>();
+			var balances = new List<Tuple<Derivation, Task<Tuple<bool, Coin[]>>>>();
 
 			while(true)
 			{
 				var derivation = derivationStrategy.Derive(i);
 				var address = derivation.ScriptPubKey.GetDestinationAddress(RPCClient.Network);
 				i++;
+
 				balances.Add(Tuple.Create(derivation, GetPreforkCoins(client, address, derivation.Redeem)));
 				if(balances.Count == gap)
 				{
 					var hasMoney = false;
 					foreach(var balance in balances)
 					{
-						foreach(var coin in balance.Item2.Result)
+						hasMoney = balance.Item2.Result.Item1;
+						foreach(var coin in balance.Item2.Result.Item2)
 						{
-							hasMoney = true;
 							coins.Add(coin.Outpoint, Tuple.Create(balance.Item1.Key, coin));
 						}
 					}
@@ -222,12 +223,22 @@ namespace BCCSpliter
 			return new QBitNinjaClient(RPCClient.Network);
 		}
 
-		private async Task<Coin[]> GetPreforkCoins(QBitNinjaClient client, BitcoinAddress address, Script redeem)
+		private async Task<Tuple<bool, Coin[]>> GetPreforkCoins(QBitNinjaClient client, BitcoinAddress address, Script redeem)
 		{
-			var balance = await client.GetBalanceBetween(new BalanceSelector(address), new BlockFeature(forkBlockHeight), null, false, true).ConfigureAwait(false);
-			return balance.Operations.SelectMany(o => o.ReceivedCoins).OfType<Coin>()
+			var balance = await client.GetBalanceBetween(new BalanceSelector(address), new BlockFeature(forkBlockHeight), null, false, false).ConfigureAwait(false);
+			var receivedCoins = balance.Operations.SelectMany(o => o.ReceivedCoins).OfType<Coin>()
 				.Select(c => redeem == null ? c : c.ToScriptCoin(redeem))
-				.ToArray();
+				.ToDictionary(c => c.Outpoint);
+
+			bool hasCoins = receivedCoins.Count != 0;
+
+			foreach(var spent in balance.Operations.SelectMany(o => o.SpentCoins).OfType<Coin>()
+				.Select(c => redeem == null ? c : c.ToScriptCoin(redeem))
+				.ToDictionary(c => c.Outpoint))
+			{
+				receivedCoins.Remove(spent.Key);
+			}
+			return Tuple.Create(hasCoins, receivedCoins.Values.ToArray());
 		}
 
 		private void Dump(DumpOptions o)
