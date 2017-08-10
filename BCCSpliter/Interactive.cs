@@ -203,7 +203,7 @@ namespace BCCSpliter
 					var hasMoney = false;
 					foreach(var balance in balances)
 					{
-						hasMoney = balance.Item2.Result.Item1;
+						hasMoney |= balance.Item2.Result.Item1;
 						foreach(var coin in balance.Item2.Result.Item2)
 						{
 							coins.Add(coin.Outpoint, Tuple.Create(balance.Item1.Key, coin));
