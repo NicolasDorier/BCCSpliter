@@ -148,7 +148,18 @@ On linux or mac:
 ```
 
 The configuration file allows to configure the connection to your Bitcoin RPC, and to choose a specific Bitcoin Cash node for broadcasting your transaciton.
-By default, the configuration file is using cookie authentication in default bitcoin core path, and connect to a random Bitcoin Cash node.
+By default, the configuration file is using cookie authentication in default bitcoin core path, and connect to a random Bitcoin Cash node. So if you run bitcoin core with default settings, things will just work.
+
+The default config file is shows you all options, if you need to change, remove the sharp sign (#) and customize your settings:
+
+```
+####Common Commands####
+#Connection to the bitcoin core wallet. BCCspliter will try to autoconfig based on default settings of Bitcoin Core.
+#rpc.url=http://localhost:8332/
+#rpc.user=bitcoinuser
+#rpc.password=bitcoinpassword
+rpc.cookiefile=D:\Bitcoin\.cookie
+```
 
 ## My transaction does not pass
 
